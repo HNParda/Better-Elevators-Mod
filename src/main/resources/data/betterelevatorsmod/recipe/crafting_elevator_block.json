@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "elevator",
+  "key": {
+    "C": {
+      "item": "minecraft:chain"
+    },
+    "B": {
+      "item": "minecraft:iron_block"
+    }
+  },
+  "pattern": [
+    "BBB",
+    "C C",
+    "BBB"
+  ],
+  "result": {
+    "count": 1,
+    "id": "betterelevatorsmod:elevator_block"
+  }
+}

@@ -1,4 +1,4 @@
-package com.example.examplemod;
+package com.hnp_arda.betterelevatorsmod;
 
 import java.util.List;
 import java.util.Set;

@@ -1,0 +1,73 @@
+{
+  "variants": {
+    "elevator_state=base": {
+      "model": "betterelevatorsmod:block/elevator_block_base"
+    },
+
+
+
+
+
+
+    "elevator_state=base_top": {
+      "model": "betterelevatorsmod:block/elevator_block_base_top"
+    },
+    "elevator_state=base_middle": {
+      "model": "betterelevatorsmod:block/elevator_block_base_middle"
+    },
+    "elevator_state=base_bottom": {
+      "model": "betterelevatorsmod:block/elevator_block_base_bottom"
+    },
+
+
+
+
+    "elevator_state=side_top": {
+      "model": "betterelevatorsmod:block/elevator_block_side_top"
+    },
+    "elevator_state=side_middle": {
+      "model": "betterelevatorsmod:block/elevator_block_side_middle"
+    },
+    "elevator_state=side_bottom": {
+      "model": "betterelevatorsmod:block/elevator_block_side_bottom"
+    },
+
+
+
+
+    "elevator_state=top_single_north": { "model": "betterelevatorsmod:block/elevator_block_single_top", "y": 0 },
+    "elevator_state=top_single_east":  { "model": "betterelevatorsmod:block/elevator_block_single_top", "y": 90 },
+    "elevator_state=top_single_south": { "model": "betterelevatorsmod:block/elevator_block_single_top", "y": 180 },
+    "elevator_state=top_single_west":  { "model": "betterelevatorsmod:block/elevator_block_single_top", "y": 270 },
+
+    "elevator_state=middle_single_north": { "model": "betterelevatorsmod:block/elevator_block_single_middle", "y": 0 },
+    "elevator_state=middle_single_east":  { "model": "betterelevatorsmod:block/elevator_block_single_middle", "y": 90 },
+    "elevator_state=middle_single_south": { "model": "betterelevatorsmod:block/elevator_block_single_middle", "y": 180 },
+    "elevator_state=middle_single_west":  { "model": "betterelevatorsmod:block/elevator_block_single_middle", "y": 270 },
+
+    "elevator_state=bottom_single_north": { "model": "betterelevatorsmod:block/elevator_block_single_bottom", "y": 0 },
+    "elevator_state=bottom_single_east":  { "model": "betterelevatorsmod:block/elevator_block_single_bottom", "y": 90 },
+    "elevator_state=bottom_single_south": { "model": "betterelevatorsmod:block/elevator_block_single_bottom", "y": 180 },
+    "elevator_state=bottom_single_west":  { "model": "betterelevatorsmod:block/elevator_block_single_bottom", "y": 270 },
+
+
+
+
+    "elevator_state=top_corner_north": { "model": "betterelevatorsmod:block/elevator_block_corner_top", "y": 0 },
+    "elevator_state=top_corner_east":  { "model": "betterelevatorsmod:block/elevator_block_corner_top", "y": 90 },
+    "elevator_state=top_corner_south": { "model": "betterelevatorsmod:block/elevator_block_corner_top", "y": 180 },
+    "elevator_state=top_corner_west":  { "model": "betterelevatorsmod:block/elevator_block_corner_top", "y": 270 },
+
+    "elevator_state=middle_corner_north": { "model": "betterelevatorsmod:block/elevator_block_corner_middle", "y": 0 },
+    "elevator_state=middle_corner_east":  { "model": "betterelevatorsmod:block/elevator_block_corner_middle", "y": 90 },
+    "elevator_state=middle_corner_south": { "model": "betterelevatorsmod:block/elevator_block_corner_middle", "y": 180 },
+    "elevator_state=middle_corner_west":  { "model": "betterelevatorsmod:block/elevator_block_corner_middle", "y": 270 },
+
+    "elevator_state=bottom_corner_north": { "model": "betterelevatorsmod:block/elevator_block_corner_bottom", "y": 0 },
+    "elevator_state=bottom_corner_east":  { "model": "betterelevatorsmod:block/elevator_block_corner_bottom", "y": 90 },
+    "elevator_state=bottom_corner_south": { "model": "betterelevatorsmod:block/elevator_block_corner_bottom", "y": 180 },
+    "elevator_state=bottom_corner_west":  { "model": "betterelevatorsmod:block/elevator_block_corner_bottom", "y": 270 }
+
+
+  }
+}
