@@ -5,8 +5,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
@@ -24,6 +26,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,26 +47,27 @@ public class ElevatorBlock extends Block {
     }
 
     private static void scanBlocks(LevelAccessor pLevel, ArrayList<BlockPos> posList, ArrayList<BlockPos> checkedList) {
-        for (int i = 0; i < posList.size(); i++) {
-            BlockPos blockPos = posList.get(i);
-            if (checkedList.contains(blockPos)) return;
+        boolean checkAgain = false;
+        ArrayList<BlockPos> tempList = new ArrayList<>();
+        for (BlockPos blockPos : posList) {
             checkedList.add(blockPos);
-            if (checkBlocks(pLevel, blockPos, posList)) scanBlocks(pLevel, posList, checkedList);
+            if (checkBlocks(pLevel, blockPos, tempList, checkedList)) checkAgain = true;
         }
+        if (checkAgain) scanBlocks(pLevel, tempList, checkedList);
     }
 
-    private static boolean checkBlocks(LevelAccessor pLevel, BlockPos blockPos, ArrayList<BlockPos> posList) {
+    private static boolean checkBlocks(LevelAccessor pLevel, BlockPos blockPos, ArrayList<BlockPos> posList, ArrayList<BlockPos> checkedList) {
         BlockPos[] list = new BlockPos[]{blockPos.above(), blockPos.below(), blockPos.north(), blockPos.east(), blockPos.south(), blockPos.west()};
-        boolean result = false;
+        boolean checkAgain = false;
         for (int i = 0; i < 6; i++) {
             BlockPos tempPos = list[i];
             Block tempBlock = pLevel.getBlockState(tempPos).getBlock();
-            if (tempBlock instanceof ElevatorBlock && !posList.contains(tempPos)) {
+            if (tempBlock instanceof ElevatorBlock && !checkedList.contains(tempPos) && !posList.contains(tempPos)) {
                 posList.add(tempPos);
-                result = true;
+                checkAgain = true;
             }
         }
-        return result;
+        return checkAgain;
     }
 
     public static VoxelShape rotateShape(byte times, VoxelShape shape) {
@@ -99,7 +103,7 @@ public class ElevatorBlock extends Block {
         elevatorBlockList.add(pPos);
         scanBlocks(pLevel, elevatorBlockList, checkedBlockList);
         if (!pLevel.isClientSide()) {
-            for (BlockPos blockPos : elevatorBlockList)
+            for (BlockPos blockPos : checkedBlockList)
                 if (blockPos != pPos)
                     pLevel.setBlock(blockPos, pLevel.getBlockState(blockPos).setValue(STATE, BASE), 2);
         }
@@ -130,42 +134,39 @@ public class ElevatorBlock extends Block {
     }
 
     @Override
-    protected void onPlace(@NotNull BlockState pState, @NotNull Level pLevel, @NotNull BlockPos pPos, @NotNull BlockState pOldState, boolean pMovedByPiston) {
-
-        boolean formed = true;
-        ArrayList<BlockPos> elevatorBlockList = new ArrayList<>();
-        ArrayList<BlockPos> checkedBlockList = new ArrayList<>();
-        elevatorBlockList.add(pPos);
-        scanBlocks(pLevel, elevatorBlockList, checkedBlockList);
-        Set<Integer> listPosX = new HashSet<>();
-        Set<Integer> listPosY = new HashSet<>();
-        Set<Integer> listPosZ = new HashSet<>();
-        elevatorBlockList.forEach(blockPos -> {
-            listPosX.add(blockPos.getX());
-            listPosY.add(blockPos.getY());
-            listPosZ.add(blockPos.getZ());
-        });
-        if (listPosY.size() < 4) formed = false;
-        for (int currentX = Collections.min(listPosX); currentX <= Collections.max(listPosX); currentX++) {
-            for (int currentY = Collections.min(listPosY); currentY <= Collections.max(listPosY); currentY++) {
-                for (int currentZ = Collections.min(listPosZ); currentZ <= Collections.max(listPosZ); currentZ++) {
-                    Block currentBlock = pLevel.getBlockState(new BlockPos(currentX, currentY, currentZ)).getBlock();
-                    if (!(currentBlock instanceof ElevatorBlock)) {
-                        formed = false;
-                        break;
+    public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
+        super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
+        if (!pLevel.isClientSide()) {
+            boolean formed = true;
+            ArrayList<BlockPos> elevatorBlockList = new ArrayList<>();
+            ArrayList<BlockPos> checkedBlockList = new ArrayList<>();
+            elevatorBlockList.add(pPos);
+            scanBlocks(pLevel, elevatorBlockList, checkedBlockList);
+            Set<Integer> listPosX = new HashSet<>();
+            Set<Integer> listPosY = new HashSet<>();
+            Set<Integer> listPosZ = new HashSet<>();
+            checkedBlockList.forEach(blockPos -> {
+                listPosX.add(blockPos.getX());
+                listPosY.add(blockPos.getY());
+                listPosZ.add(blockPos.getZ());
+            });
+            if (listPosY.size() < 4) formed = false;
+            for (int currentX = Collections.min(listPosX); currentX <= Collections.max(listPosX); currentX++) {
+                for (int currentY = Collections.min(listPosY); currentY <= Collections.max(listPosY); currentY++) {
+                    for (int currentZ = Collections.min(listPosZ); currentZ <= Collections.max(listPosZ); currentZ++) {
+                        Block currentBlock = pLevel.getBlockState(new BlockPos(currentX, currentY, currentZ)).getBlock();
+                        if (!(currentBlock instanceof ElevatorBlock)) {
+                            formed = false;
+                            break;
+                        }
                     }
                 }
-            }
-        } // check all block if structure can be formed
+            } // check all block if structure can be formed
 
-
-        if (!pLevel.isClientSide()) {
-            if (formed) formStructure(elevatorBlockList, pLevel);
-            else for (BlockPos blockPos : elevatorBlockList)
+            if (formed) formStructure(checkedBlockList, pLevel);
+            else for (BlockPos blockPos : checkedBlockList)
                 pLevel.setBlockAndUpdate(blockPos, pLevel.getBlockState(blockPos).setValue(STATE, BASE));
-        }
-
-        super.onPlace(pState, pLevel, pPos, pOldState, false);
+        } //check if multiblock structure can be formed
     }
 
     private void formStructure(ArrayList<BlockPos> elevatorBlockList, Level pLevel) {
