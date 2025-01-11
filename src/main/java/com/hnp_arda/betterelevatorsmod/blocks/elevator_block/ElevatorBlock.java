@@ -1,20 +1,30 @@
 package com.hnp_arda.betterelevatorsmod.blocks.elevator_block;
 
+import com.hnp_arda.betterelevatorsmod.blocks.elevator_block.entity.ElevatorBlockEntity;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
@@ -28,6 +38,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -35,11 +46,9 @@ import java.util.Set;
 
 import static com.hnp_arda.betterelevatorsmod.blocks.elevator_block.ElevatorState.*;
 
-public class ElevatorBlock extends Block {
+public class ElevatorBlock extends Block implements EntityBlock {
 
     public static final EnumProperty<ElevatorState> STATE = EnumProperty.create("elevator_state", ElevatorState.class);
-    boolean test = false;
-    int testCount = 0;
 
     public ElevatorBlock() {
         super(Properties.of().dynamicShape().noOcclusion().pushReaction(PushReaction.BLOCK));
@@ -114,24 +123,45 @@ public class ElevatorBlock extends Block {
         return switchShape(pState);
     }
 
-    @Override
-    protected void tick(BlockState pState, ServerLevel pLevel, BlockPos pPos, RandomSource pRandom) {
-        super.tick(pState, pLevel, pPos, pRandom);
-    }
+
+
+
+
+
+
+
+
+
+
 
     @Override
     protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, BlockHitResult pHitResult) {
-        if (!pLevel.isClientSide()) {
-            ElevatorState elevatorState = pState.getValue(STATE);
-            pPlayer.sendSystemMessage(Component.literal(elevatorState.toString()));
-            test = true;
-            testCount++;
-            pLevel.setBlockAndUpdate(pPos, pState);
-        }
 
-        pPlayer.move(MoverType.SELF, new Vec3(0.0D, 0.0625, 0.0D));
-        return InteractionResult.SUCCESS;
+        if (!pLevel.isClientSide()) {
+            BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
+            if (blockEntity instanceof ElevatorBlockEntity) {
+                pPlayer.openMenu((MenuProvider) blockEntity);
+            }
+        }
+        return InteractionResult.sidedSuccess(pLevel.isClientSide());
     }
+
+
+    @Override
+    public @Nullable BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
+        return new ElevatorBlockEntity(pPos, pState);
+    }
+
+    @Override
+    protected RenderShape getRenderShape( BlockState pState) {
+        return RenderShape.MODEL;
+    }
+
+
+
+
+
+
 
     @Override
     public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
@@ -316,14 +346,6 @@ public class ElevatorBlock extends Block {
 
             default -> shape = Shapes.block();
         }
-        if (test && elevatorState.toString().contains("bottom")) {
-            if (testCount == 17) {
-                test = false;
-                testCount = 0;
-            }
-            shape = Shapes.join(shape, Shapes.box(0, 0, 0, 1, 0.0625 * testCount, 1), BooleanOp.OR);
-        }
-
         return shape;
     }
 

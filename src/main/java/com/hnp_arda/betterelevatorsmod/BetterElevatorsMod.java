@@ -1,7 +1,6 @@
 package com.hnp_arda.betterelevatorsmod;
 
-import com.hnp_arda.betterelevatorsmod.items.ModItems;
-
+import com.hnp_arda.betterelevatorsmod.blocks.elevator_block.screen.ElevatorScreen;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -11,28 +10,31 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
-@Mod(ExampleMod.MODID)
-public class ExampleMod
+@Mod(BetterElevatorsMod.MODID)
+public class BetterElevatorsMod
 {
     public static final String MODID = "betterelevatorsmod";
 
-    public ExampleMod(IEventBus modEventBus, ModContainer modContainer)
+    public BetterElevatorsMod(IEventBus modEventBus, ModContainer modContainer)
     {
         modEventBus.addListener(this::commonSetup);
 
-        ModItems.register(modEventBus);
+        ModRegister.register(modEventBus);
 
         NeoForge.EVENT_BUS.register(this);
 
         modEventBus.addListener(this::addCreative);
+        modEventBus.addListener(this::registerScreens);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
+
 
     private void commonSetup(final FMLCommonSetupEvent event)
     {
@@ -49,6 +51,10 @@ public class ExampleMod
     public void onServerStarting(ServerStartingEvent event)
     {
 
+    }
+
+    private void registerScreens(RegisterMenuScreensEvent event) {
+        event.register(ModRegister.ELEVATOR_MENU.get(), ElevatorScreen::new);
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
