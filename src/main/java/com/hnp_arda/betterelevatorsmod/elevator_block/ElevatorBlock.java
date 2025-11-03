@@ -1,50 +1,38 @@
-package com.hnp_arda.betterelevatorsmod.blocks.elevator_block;
+package com.hnp_arda.betterelevatorsmod.elevator_block;
 
-import com.hnp_arda.betterelevatorsmod.blocks.elevator_block.entity.ElevatorBlockEntity;
-import com.mojang.serialization.MapCodec;
+import com.hnp_arda.betterelevatorsmod.elevator_block.entity.ElevatorBlockEntity;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.NonNullList;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.RandomSource;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.*;
-import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.OverridingMethodsMustInvokeSuper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.hnp_arda.betterelevatorsmod.blocks.elevator_block.ElevatorState.*;
+import static com.hnp_arda.betterelevatorsmod.elevator_block.ElevatorState.*;
 
 public class ElevatorBlock extends Block implements EntityBlock {
 
@@ -95,6 +83,45 @@ public class ElevatorBlock extends Block implements EntityBlock {
     }
 
     @Override
+    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pMovedByPiston) {
+        // Drop items BEFORE the block entity is removed
+        if (!pState.is(pNewState.getBlock()) && !pLevel.isClientSide()) {
+            // Drop items from master if it's a formed structure
+            if (pState.getValue(STATE) != BASE) {
+                dropMasterInventory(pLevel, pPos);
+            } else {
+                // Just drop this block's inventory if it's not formed
+                BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
+                if (blockEntity instanceof ElevatorBlockEntity elevatorBlockEntity) {
+                    elevatorBlockEntity.dropContents();
+                }
+            }
+        }
+        super.onRemove(pState, pLevel, pPos, pNewState, pMovedByPiston);
+    }
+
+    private void dropMasterInventory(Level level, BlockPos breakPos) {
+        // Find the master block and drop its inventory
+        ArrayList<BlockPos> elevatorBlockList = new ArrayList<>();
+        ArrayList<BlockPos> checkedBlockList = new ArrayList<>();
+        elevatorBlockList.add(breakPos);
+        scanBlocks(level, elevatorBlockList, checkedBlockList);
+    
+        // Find and drop from master only once
+        boolean dropped = false;
+        for (BlockPos blockPos : checkedBlockList) {
+            BlockEntity blockEntity = level.getBlockEntity(blockPos);
+            if (blockEntity instanceof ElevatorBlockEntity elevatorBlockEntity) {
+                if (elevatorBlockEntity.isMaster() && !dropped) {
+                    elevatorBlockEntity.dropContents();
+                    dropped = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    @Override
     public void destroy(LevelAccessor pLevel, BlockPos pPos, BlockState pState) {
         resetStructure(pLevel, pPos);
         super.destroy(pLevel, pPos, pState);
@@ -106,15 +133,56 @@ public class ElevatorBlock extends Block implements EntityBlock {
         super.onBlockExploded(state, level, pos, explosion);
     }
 
+    private void dropAllInventories(Level level, BlockPos breakPos) {
+        ArrayList<BlockPos> elevatorBlockList = new ArrayList<>();
+        ArrayList<BlockPos> checkedBlockList = new ArrayList<>();
+        elevatorBlockList.add(breakPos);
+        scanBlocks(level, elevatorBlockList, checkedBlockList);
+    
+        // Drop all inventories from all blocks in the structure
+        for (BlockPos blockPos : checkedBlockList) {
+            BlockEntity blockEntity = level.getBlockEntity(blockPos);
+            if (blockEntity instanceof ElevatorBlockEntity elevatorBlockEntity) {
+                elevatorBlockEntity.dropContents();
+            }
+        }
+    }
+
+    private void formStructure(ArrayList<BlockPos> elevatorBlockList, Level pLevel) {
+        // Find the lowest block to be the master
+        BlockPos masterPos = elevatorBlockList.stream()
+            .min((pos1, pos2) -> Integer.compare(pos1.getY(), pos2.getY()))
+            .orElse(null);
+        
+        if (masterPos == null) return;
+
+        // Set all blocks to point to the master
+        for (BlockPos blockPos : elevatorBlockList) {
+            pLevel.setBlockAndUpdate(blockPos, checkState(pLevel, blockPos));
+            
+            BlockEntity blockEntity = pLevel.getBlockEntity(blockPos);
+            if (blockEntity instanceof ElevatorBlockEntity elevatorBlockEntity) {
+                elevatorBlockEntity.setMasterPos(masterPos);
+            }
+        }
+    }
+
     void resetStructure(LevelAccessor pLevel, BlockPos pPos) {
         ArrayList<BlockPos> elevatorBlockList = new ArrayList<>();
         ArrayList<BlockPos> checkedBlockList = new ArrayList<>();
         elevatorBlockList.add(pPos);
         scanBlocks(pLevel, elevatorBlockList, checkedBlockList);
         if (!pLevel.isClientSide()) {
-            for (BlockPos blockPos : checkedBlockList)
-                if (blockPos != pPos)
+            for (BlockPos blockPos : checkedBlockList) {
+                if (!blockPos.equals(pPos)) {
                     pLevel.setBlock(blockPos, pLevel.getBlockState(blockPos).setValue(STATE, BASE), 2);
+                }
+                // Reset master position
+                BlockEntity blockEntity = pLevel.getBlockEntity(blockPos);
+                if (blockEntity instanceof ElevatorBlockEntity elevatorBlockEntity) {
+                    elevatorBlockEntity.setMasterPos(null);
+                }
+            }
         }
     }
 
@@ -123,29 +191,23 @@ public class ElevatorBlock extends Block implements EntityBlock {
         return switchShape(pState);
     }
 
-
-
-
-
-
-
-
-
-
-
-
     @Override
     protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, BlockHitResult pHitResult) {
 
-        if (!pLevel.isClientSide()) {
+        if (pState.getValue(STATE) == BASE)
+        {
+            tryForm(pLevel, pPos);
+            return InteractionResult.sidedSuccess(true);
+        }
+
+        if (!pLevel.isClientSide() && pPlayer instanceof ServerPlayer serverPlayer) {
             BlockEntity blockEntity = pLevel.getBlockEntity(pPos);
-            if (blockEntity instanceof ElevatorBlockEntity) {
-                pPlayer.openMenu((MenuProvider) blockEntity);
+            if (blockEntity instanceof ElevatorBlockEntity elevatorBlockEntity) {
+                serverPlayer.openMenu(elevatorBlockEntity, buf -> buf.writeBlockPos(pPos));
             }
         }
         return InteractionResult.sidedSuccess(pLevel.isClientSide());
     }
-
 
     @Override
     public @Nullable BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
@@ -153,19 +215,18 @@ public class ElevatorBlock extends Block implements EntityBlock {
     }
 
     @Override
-    protected RenderShape getRenderShape( BlockState pState) {
+    protected RenderShape getRenderShape(BlockState pState) {
         return RenderShape.MODEL;
     }
-
-
-
-
-
-
 
     @Override
     public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
+        tryForm(pLevel, pPos);
+    }
+
+    private void tryForm(Level pLevel, BlockPos pPos) {
+
         if (!pLevel.isClientSide()) {
             boolean formed = true;
             ArrayList<BlockPos> elevatorBlockList = new ArrayList<>();
@@ -197,16 +258,6 @@ public class ElevatorBlock extends Block implements EntityBlock {
             else for (BlockPos blockPos : checkedBlockList)
                 pLevel.setBlockAndUpdate(blockPos, pLevel.getBlockState(blockPos).setValue(STATE, BASE));
         } //check if multiblock structure can be formed
-    }
-
-    private void formStructure(ArrayList<BlockPos> elevatorBlockList, Level pLevel) {
-
-        for (BlockPos blockPos : elevatorBlockList) {
-
-            pLevel.setBlockAndUpdate(blockPos, checkState(pLevel, blockPos));
-
-        }
-
     }
 
     private BlockState checkState(Level pLevel, BlockPos blockPos) {
@@ -438,4 +489,3 @@ public class ElevatorBlock extends Block implements EntityBlock {
     }
 
 }
-

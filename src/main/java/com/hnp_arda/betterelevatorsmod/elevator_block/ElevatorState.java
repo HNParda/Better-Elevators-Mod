@@ -1,4 +1,4 @@
-package com.hnp_arda.betterelevatorsmod.blocks.elevator_block;
+package com.hnp_arda.betterelevatorsmod.elevator_block;
 
 import net.minecraft.util.StringRepresentable;
 

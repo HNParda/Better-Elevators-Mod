@@ -1,4 +1,4 @@
-package com.hnp_arda.betterelevatorsmod.blocks.elevator_block.screen;
+package com.hnp_arda.betterelevatorsmod.elevator_block.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;

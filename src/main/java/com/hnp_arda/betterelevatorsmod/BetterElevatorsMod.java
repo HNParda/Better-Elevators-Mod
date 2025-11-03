@@ -1,6 +1,7 @@
 package com.hnp_arda.betterelevatorsmod;
 
-import com.hnp_arda.betterelevatorsmod.blocks.elevator_block.screen.ElevatorScreen;
+import com.hnp_arda.betterelevatorsmod.elevator_block.screen.ElevatorScreen;
+import com.hnp_arda.betterelevatorsmod.elevator_block.renderer.ElevatorCabinRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -10,6 +11,8 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
@@ -31,6 +34,7 @@ public class BetterElevatorsMod
 
         modEventBus.addListener(this::addCreative);
         modEventBus.addListener(this::registerScreens);
+        modEventBus.addListener(this::registerCapabilities);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
@@ -53,6 +57,10 @@ public class BetterElevatorsMod
 
     }
 
+    public void registerCapabilities(RegisterCapabilitiesEvent event) {
+        ModRegister.registerCapabilities(event);
+    }
+
     private void registerScreens(RegisterMenuScreensEvent event) {
         event.register(ModRegister.ELEVATOR_MENU.get(), ElevatorScreen::new);
     }
@@ -65,6 +73,11 @@ public class BetterElevatorsMod
         public static void onClientSetup(FMLClientSetupEvent event)
         {
 
+        }
+
+        @SubscribeEvent
+        public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+            event.registerEntityRenderer(ModRegister.ELEVATOR_CABIN_ENTITY.get(), ElevatorCabinRenderer::new);
         }
     }
 }

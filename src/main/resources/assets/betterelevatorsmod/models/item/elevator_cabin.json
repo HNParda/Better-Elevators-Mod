@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "betterelevatorsmod:item/example_item"
+    "layer0": "betterelevatorsmod:item/elevator_cabin"
   }
 }
