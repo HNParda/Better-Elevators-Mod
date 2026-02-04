@@ -1,0 +1,65 @@
+eindex 2
+
+  Wenn’s noch klemmt, sag mir ob:
+
+  - die Roof‑Hitbox nach Start sichtbar hoch sitzt (F3+B)
+  - und ob Hochfahren nun wieder funktioniert bei Höhe 3
+
+
+› okay bei 3 block hohen gehts jz aber bei 2 immernoch nicht, nur wenn man direkt danach sneakend springt, die obere hitbox geht nicht nur nen block nach oben sondern wird komplett geyeetet
+
+
+• Ran Get-Content -Path src\main\java\com\hnp_arda\betterelevatorsmod\elevator_block\entity\ElevatorCabinEntity.java
+  └ package com.hnp_arda.betterelevatorsmod.elevator_block.entity;
+
+    … +257 lines
+        }
+    }
+
+• Noticed nonstandard height constants and a likely bug where wall north layer incorrectly uses a tiny platform top height, causing the roof hitbox to be misplaced and "yeeted." Considering removing roof boost and instead adding
+  temporary upward padding to the roof AABB when height=2 and boost is active, as a simpler, more controlled fix.
+
+  Normalizing dimension constants and fixing roof hitbox
+
+  Planning to standardize platform height, floor padding, and roof thickness to 2/16 to resolve inconsistent and unusually thin roof collision causing hitbox issues. Will remove the incorrect special case for wall north in
+  dimensions, update bounding box calculations accordingly, and adjust roof boost logic for a single offset without stacking, aiming to fix the "yeeted" roof hitbox for height=2.
+
+• Edited src/main/java/com/hnp_arda/betterelevatorsmod/elevator_block/entity/ElevatorCabinEntity.java (+5 -9)
+     19
+     20 -    public static final float PLATFORM_HEIGHT = 2.2f / 16.0f;
+     21 -    public static final float FLOOR_PADDING_DOWN = 5.0f / 16.0f;
+     22 -    public static final float PLATFORM_TOP_HEIGHT = 0.1f / 16.0f;
+     20 +    public static final float PLATFORM_HEIGHT = 2.0f / 16.0f;
+     21 +    public static final float FLOOR_PADDING_DOWN = 2.0f / 16.0f;
+     22      public static final int DEFAULT_WALL_HEIGHT_BLOCKS = 2;
+        ⋮
+    104
+    106 -        if (layer == COLLISION_LAYER_FLOOR ) {
+    105 +        if (layer == COLLISION_LAYER_FLOOR || layer == COLLISION_LAYER_ROOF) {
+    106              return EntityDimensions.fixed(diameter, PLATFORM_HEIGHT);
+    108 -        } else if (layer == COLLISION_LAYER_WALL_NORTH) {
+    109 -            return EntityDimensions.fixed(diameter, PLATFORM_TOP_HEIGHT);
+    110 -
+    107          }
+        ⋮
+    133          if (layer == COLLISION_LAYER_ROOF) {
+    138 -            double minY = pos.y + getWallHeight() - PLATFORM_TOP_HEIGHT;
+    139 -            return new AABB(pos.x - halfWidth, minY, pos.z - halfDepth, pos.x + halfWidth, minY + PLATFORM_TOP_HEIGHT, pos.z + halfDepth);
+    134 +            double minY = pos.y + getWallHeight() - PLATFORM_HEIGHT;
+    135 +            return new AABB(pos.x - halfWidth, minY, pos.z - halfDepth, pos.x + halfWidth, minY + PLATFORM_HEIGHT, pos.z + halfDepth);
+    136          }
+
+─ Worked for 40s ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Ich hab die Roof/Floor‑Dicken wieder konsistent gemacht (2/16) und die komischen Top‑Werte entfernt, die die Roof‑AABB extrem dünn/instabil gemacht haben. Außerdem lief der WALL_NORTH‑Sonderfall raus, damit Wände wieder
+  normale Höhe haben.
+
+  Änderung
+
+  - src/main/java/com/hnp_arda/betterelevatorsmod/elevator_block/entity/ElevatorCabinEntity.java
+
+  Bitte teste nochmal mit Kabinenhöhe 2 + moveindex.
+  Wenn die Roof‑Hitbox jetzt immer noch „geyeetet“ ist, sag mir, ob das nur beim Start (erste 20 Ticks) passiert oder dauerhaft.
+
+
+› Implement {feature}
