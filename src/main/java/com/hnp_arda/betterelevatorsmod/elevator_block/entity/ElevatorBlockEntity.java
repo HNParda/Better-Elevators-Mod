@@ -69,6 +69,8 @@ public class ElevatorBlockEntity extends BlockEntity implements MenuProvider, IC
     private double cabinY;
     private double targetCabinY;
     private double moveSpeed = DEFAULT_MOVE_SPEED;
+    private int roofBoostTicks;
+    private boolean roofBoostApplied;
 
     public ItemStackHandler getItemHandler() {
         // If this is a slave block, get the master's inventory
@@ -238,6 +240,10 @@ public class ElevatorBlockEntity extends BlockEntity implements MenuProvider, IC
             if (cabinY == 0.0) {
                 cabinY = getCurrentFloorStartY();
             }
+            if (cabinHeight == 2) {
+                roofBoostTicks = 20;
+                roofBoostApplied = false;
+            }
         }
     }
 
@@ -257,6 +263,7 @@ public class ElevatorBlockEntity extends BlockEntity implements MenuProvider, IC
             cabinY = targetCabinY;
             moveEntitiesInCabin(delta, baseY, cabinY);
             moveCabinEntities(delta);
+            handleRoofBoostTick();
             moving = false;
             setCurrentFloorStartY((int) Math.round(targetCabinY));
             return;
@@ -267,12 +274,34 @@ public class ElevatorBlockEntity extends BlockEntity implements MenuProvider, IC
         cabinY += delta;
         moveEntitiesInCabin(delta, baseY, cabinY);
         moveCabinEntities(delta);
+        handleRoofBoostTick();
     }
 
     private void moveCabinEntities(double deltaY) {
         if (Math.abs(deltaY) < 1.0E-6) return;
         for (ElevatorCabinEntity cabin : findCabinEntities()) {
             cabin.setPos(cabin.getX(), cabin.getY() + deltaY, cabin.getZ());
+        }
+    }
+
+    private void handleRoofBoostTick() {
+        if (roofBoostTicks > 0) {
+            if (!roofBoostApplied) {
+                offsetRoofCollision(1.0);
+                roofBoostApplied = true;
+            }
+            roofBoostTicks--;
+            if (roofBoostTicks == 0 && roofBoostApplied) {
+                offsetRoofCollision(-1.0);
+                roofBoostApplied = false;
+            }
+        }
+    }
+
+    private void offsetRoofCollision(double deltaY) {
+        ElevatorCabinEntity roof = findCabinEntity(ElevatorCabinEntity.COLLISION_LAYER_ROOF);
+        if (roof != null) {
+            roof.setPos(roof.getX(), roof.getY() + deltaY, roof.getZ());
         }
     }
 
@@ -313,6 +342,7 @@ public class ElevatorBlockEntity extends BlockEntity implements MenuProvider, IC
             }
         }
     }
+
     public int getCabinHeight() {
         return cabinHeight;
     }

@@ -17,8 +17,8 @@ import java.util.List;
 
 public class ElevatorCabinEntity extends Entity {
 
-    public static final float PLATFORM_HEIGHT = 2.2f / 16.0f;
-    public static final float PLATFORM_TOP_HEIGHT = 0.1f / 16.0f;
+    public static final float PLATFORM_HEIGHT = 2.0f / 16.0f;
+    public static final float FLOOR_PADDING_DOWN = 2.0f / 16.0f;
     public static final int DEFAULT_WALL_HEIGHT_BLOCKS = 2;
     public static final float WALL_THICKNESS = 0.1f;
 
@@ -102,11 +102,8 @@ public class ElevatorCabinEntity extends Entity {
         float depth = Math.max(.5f, getDepth());
         float diameter = Math.max(width, depth);
 
-        if (layer == COLLISION_LAYER_FLOOR ) {
+        if (layer == COLLISION_LAYER_FLOOR || layer == COLLISION_LAYER_ROOF) {
             return EntityDimensions.fixed(diameter, PLATFORM_HEIGHT);
-        } else if (layer == COLLISION_LAYER_WALL_NORTH) {
-            return EntityDimensions.fixed(diameter, PLATFORM_TOP_HEIGHT);
-
         }
 
         return EntityDimensions.fixed(diameter, getWallHeight());
@@ -123,12 +120,19 @@ public class ElevatorCabinEntity extends Entity {
         double halfDepth = Math.max(1.0, getDepth()) / 2.0;
 
         if (layer == COLLISION_LAYER_FLOOR) {
-            return new AABB(pos.x - halfWidth, pos.y, pos.z - halfDepth, pos.x + halfWidth, pos.y + PLATFORM_HEIGHT, pos.z + halfDepth);
+            return new AABB(
+                pos.x - halfWidth,
+                pos.y - FLOOR_PADDING_DOWN,
+                pos.z - halfDepth,
+                pos.x + halfWidth,
+                pos.y + PLATFORM_HEIGHT,
+                pos.z + halfDepth
+            );
         }
 
         if (layer == COLLISION_LAYER_ROOF) {
-            double minY = pos.y + getWallHeight() - PLATFORM_TOP_HEIGHT;
-            return new AABB(pos.x - halfWidth, minY, pos.z - halfDepth, pos.x + halfWidth, minY + PLATFORM_TOP_HEIGHT, pos.z + halfDepth);
+            double minY = pos.y + getWallHeight() - PLATFORM_HEIGHT;
+            return new AABB(pos.x - halfWidth, minY, pos.z - halfDepth, pos.x + halfWidth, minY + PLATFORM_HEIGHT, pos.z + halfDepth);
         }
 
         if (layer == COLLISION_LAYER_WALL_NORTH) {
