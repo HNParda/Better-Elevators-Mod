@@ -1,19 +1,26 @@
 package com.hnp_arda.betterelevatorsmod.elevator_block.screen;
 
+import com.hnp_arda.betterelevatorsmod.BetterElevatorsMod;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 
 public class ElevatorScreen extends AbstractContainerScreen<ElevatorMenu> {
 
-    //private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(ExampleMod.MODID, "texture/gui/elevator_gui.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            BetterElevatorsMod.MODID,
+            "textures/gui/elevator_gui.png"
+    );
 
     public ElevatorScreen(ElevatorMenu pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
+        this.imageWidth = 176;
+        this.imageHeight = 166;
     }
 
     @Override
@@ -23,7 +30,9 @@ public class ElevatorScreen extends AbstractContainerScreen<ElevatorMenu> {
 
     @Override
     protected void renderBg(GuiGraphics pGuiGraphics, float pPartialTick, int pMouseX, int pMouseY) {
-        RenderSystem.setShader(GameRenderer::getPositionShader);
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderTexture(0, TEXTURE);
+        pGuiGraphics.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight);
     }
 
     @Override

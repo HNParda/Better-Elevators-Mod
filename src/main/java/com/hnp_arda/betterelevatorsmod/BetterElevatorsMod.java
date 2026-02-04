@@ -2,6 +2,7 @@ package com.hnp_arda.betterelevatorsmod;
 
 import com.hnp_arda.betterelevatorsmod.elevator_block.screen.ElevatorScreen;
 import com.hnp_arda.betterelevatorsmod.elevator_block.renderer.ElevatorCabinRenderer;
+import com.hnp_arda.betterelevatorsmod.command.ElevatorCommands;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,6 +17,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -55,6 +57,11 @@ public class BetterElevatorsMod
     public void onServerStarting(ServerStartingEvent event)
     {
 
+    }
+
+    @SubscribeEvent
+    public void registerCommands(RegisterCommandsEvent event) {
+        ElevatorCommands.register(event.getDispatcher());
     }
 
     public void registerCapabilities(RegisterCapabilitiesEvent event) {

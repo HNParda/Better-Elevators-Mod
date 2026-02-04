@@ -51,7 +51,7 @@ public class ModRegister {
         )
         .sized(1.0F, 2.0F)
         .clientTrackingRange(10)
-        .updateInterval(20)
+        .updateInterval(1)
         .build("elevator_cabin"));
 
      public static final DeferredItem<Item> itemCabin = ITEMS.register("elevator_cabin", () -> new Item(new Item.Properties()));

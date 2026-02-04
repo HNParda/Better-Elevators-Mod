@@ -18,6 +18,9 @@ public class ElevatorCabinRenderer extends EntityRenderer<ElevatorCabinEntity> {
 
     @Override
     public void render(ElevatorCabinEntity pEntity, float pEntityYaw, float pPartialTick, PoseStack pPoseStack, MultiBufferSource pBuffer, int pPackedLight) {
+        if (pEntity.getCollisionLayer() != ElevatorCabinEntity.COLLISION_LAYER_MAIN) {
+            return;
+        }
         super.render(pEntity, pEntityYaw, pPartialTick, pPoseStack, pBuffer, pPackedLight);
 
         pPoseStack.pushPose();
@@ -28,7 +31,7 @@ public class ElevatorCabinRenderer extends EntityRenderer<ElevatorCabinEntity> {
         // Draw a simple box representing the cabin platform
         float halfWidth = width / 2.0f;
         float halfDepth = depth / 2.0f;
-        float height = 0.2f; // Platform is 0.2 blocks thick
+        float height = ElevatorCabinEntity.PLATFORM_HEIGHT;
 
         VertexConsumer vertexConsumer = pBuffer.getBuffer(RenderType.lines());
         Matrix4f matrix = pPoseStack.last().pose();
@@ -37,7 +40,7 @@ public class ElevatorCabinRenderer extends EntityRenderer<ElevatorCabinEntity> {
         drawBox(matrix, vertexConsumer, -halfWidth, 0, -halfDepth, halfWidth, height, halfDepth);
 
         // Draw cabin walls (2 blocks high)
-        float wallHeight = 2.0f;
+        float wallHeight = pEntity.getWallHeight();
         drawWallOutline(matrix, vertexConsumer, -halfWidth, height, -halfDepth, halfWidth, wallHeight, halfDepth);
 
         pPoseStack.popPose();

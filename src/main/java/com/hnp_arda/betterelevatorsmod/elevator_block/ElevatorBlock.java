@@ -16,6 +16,8 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
@@ -25,6 +27,7 @@ import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -33,6 +36,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static com.hnp_arda.betterelevatorsmod.elevator_block.ElevatorState.*;
+import static com.hnp_arda.betterelevatorsmod.ModRegister.entityElevatorBlock;
 
 public class ElevatorBlock extends Block implements EntityBlock {
 
@@ -192,6 +196,11 @@ public class ElevatorBlock extends Block implements EntityBlock {
     }
 
     @Override
+    protected VoxelShape getCollisionShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
+        return switchShape(pState);
+    }
+
+    @Override
     protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, BlockHitResult pHitResult) {
 
         if (pState.getValue(STATE) == BASE)
@@ -210,17 +219,28 @@ public class ElevatorBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public @Nullable BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
+    public @Nullable BlockEntity newBlockEntity(@NotNull BlockPos pPos, @NotNull BlockState pState) {
         return new ElevatorBlockEntity(pPos, pState);
     }
 
     @Override
-    protected RenderShape getRenderShape(BlockState pState) {
+    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> pBlockEntityType) {
+        if (pLevel.isClientSide()) {
+            return null;
+        }
+        if (pBlockEntityType == entityElevatorBlock.get()) {
+            return (level, pos, state, entity) -> ((ElevatorBlockEntity) entity).tickServer();
+        }
+        return null;
+    }
+
+    @Override
+    protected @NotNull RenderShape getRenderShape(@NotNull BlockState pState) {
         return RenderShape.MODEL;
     }
 
     @Override
-    public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
+    public void setPlacedBy(@NotNull Level pLevel, BlockPos pPos, BlockState pState, @Nullable LivingEntity pPlacer, ItemStack pStack) {
         super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
         tryForm(pLevel, pPos);
     }

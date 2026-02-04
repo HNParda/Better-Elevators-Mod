@@ -17,16 +17,34 @@ import java.util.List;
 
 public class ElevatorCabinEntity extends Entity {
 
+    public static final float PLATFORM_HEIGHT = 2.2f / 16.0f;
+    public static final float PLATFORM_TOP_HEIGHT = 0.1f / 16.0f;
+    public static final int DEFAULT_WALL_HEIGHT_BLOCKS = 2;
+    public static final float WALL_THICKNESS = 0.1f;
+
+    public static final int COLLISION_LAYER_MAIN = 0;
+    public static final int COLLISION_LAYER_FLOOR = 1;
+    public static final int COLLISION_LAYER_ROOF = 2;
+    public static final int COLLISION_LAYER_WALL_NORTH = 3;
+    public static final int COLLISION_LAYER_WALL_SOUTH = 4;
+    public static final int COLLISION_LAYER_WALL_WEST = 5;
+    public static final int COLLISION_LAYER_WALL_EAST = 6;
+
     private static final EntityDataAccessor<BlockPos> MASTER_POS = SynchedEntityData.defineId(ElevatorCabinEntity.class, EntityDataSerializers.BLOCK_POS);
 
     private static final EntityDataAccessor<Integer> WIDTH = SynchedEntityData.defineId(ElevatorCabinEntity.class, EntityDataSerializers.INT);
 
     private static final EntityDataAccessor<Integer> DEPTH = SynchedEntityData.defineId(ElevatorCabinEntity.class, EntityDataSerializers.INT);
 
+    private static final EntityDataAccessor<Integer> WALL_HEIGHT_BLOCKS = SynchedEntityData.defineId(ElevatorCabinEntity.class, EntityDataSerializers.INT);
+
+    private static final EntityDataAccessor<Integer> COLLISION_LAYER = SynchedEntityData.defineId(ElevatorCabinEntity.class, EntityDataSerializers.INT);
+
     public ElevatorCabinEntity(EntityType<?> pEntityType, Level pLevel) {
         super(pEntityType, pLevel);
-        this.noPhysics = false;
+        this.noPhysics = true;
         this.blocksBuilding = true;
+        this.setNoGravity(true);
     }
 
     public BlockPos getMasterPos() {
@@ -51,61 +69,118 @@ public class ElevatorCabinEntity extends Entity {
         return this.entityData.get(DEPTH);
     }
 
+    public void setWallHeightBlocks(int heightBlocks) {
+        this.entityData.set(WALL_HEIGHT_BLOCKS, Math.max(1, heightBlocks));
+        refreshDimensions();
+    }
+
+    public int getWallHeightBlocks() {
+        return this.entityData.get(WALL_HEIGHT_BLOCKS);
+    }
+
+    public float getWallHeight() {
+        return Math.max(1, getWallHeightBlocks());
+    }
+
+    public void setCollisionLayer(int layer) {
+        this.entityData.set(COLLISION_LAYER, layer);
+        refreshDimensions();
+    }
+
+    public int getCollisionLayer() {
+        return this.entityData.get(COLLISION_LAYER);
+    }
+
     @Override
     public EntityDimensions getDimensions(Pose pPose) {
-        // Very small dimensions for the entity itself, collision is handled separately
-        return EntityDimensions.fixed(0.1f, 0.1f);
+        int layer = getCollisionLayer();
+        if (layer == COLLISION_LAYER_MAIN) {
+            return EntityDimensions.fixed(0.1f, 0.1f);
+        }
+
+        float width = Math.max(.5f, getWidth());
+        float depth = Math.max(.5f, getDepth());
+        float diameter = Math.max(width, depth);
+
+        if (layer == COLLISION_LAYER_FLOOR ) {
+            return EntityDimensions.fixed(diameter, PLATFORM_HEIGHT);
+        } else if (layer == COLLISION_LAYER_WALL_NORTH) {
+            return EntityDimensions.fixed(diameter, PLATFORM_TOP_HEIGHT);
+
+        }
+
+        return EntityDimensions.fixed(diameter, getWallHeight());
     }
 
     @Override
     protected AABB makeBoundingBox() {
-        // Minimal bounding box for the entity center point
         Vec3 pos = position();
+        int layer = getCollisionLayer();
+        if (layer == COLLISION_LAYER_MAIN) {
+            return new AABB(pos.x - 0.05, pos.y, pos.z - 0.05, pos.x + 0.05, pos.y + 0.1, pos.z + 0.05);
+        }
+        double halfWidth = Math.max(1.0, getWidth()) / 2.0;
+        double halfDepth = Math.max(1.0, getDepth()) / 2.0;
+
+        if (layer == COLLISION_LAYER_FLOOR) {
+            return new AABB(pos.x - halfWidth, pos.y, pos.z - halfDepth, pos.x + halfWidth, pos.y + PLATFORM_HEIGHT, pos.z + halfDepth);
+        }
+
+        if (layer == COLLISION_LAYER_ROOF) {
+            double minY = pos.y + getWallHeight() - PLATFORM_TOP_HEIGHT;
+            return new AABB(pos.x - halfWidth, minY, pos.z - halfDepth, pos.x + halfWidth, minY + PLATFORM_TOP_HEIGHT, pos.z + halfDepth);
+        }
+
+        if (layer == COLLISION_LAYER_WALL_NORTH) {
+            return new AABB(
+                pos.x - halfWidth,
+                pos.y,
+                pos.z - halfDepth,
+                pos.x + halfWidth,
+                pos.y + getWallHeight(),
+                pos.z - halfDepth + WALL_THICKNESS
+            );
+        }
+
+        if (layer == COLLISION_LAYER_WALL_SOUTH) {
+            return new AABB(
+                pos.x - halfWidth,
+                pos.y,
+                pos.z + halfDepth - WALL_THICKNESS,
+                pos.x + halfWidth,
+                pos.y + getWallHeight(),
+                pos.z + halfDepth
+            );
+        }
+
+        if (layer == COLLISION_LAYER_WALL_WEST) {
+            return new AABB(
+                pos.x - halfWidth,
+                pos.y,
+                pos.z - halfDepth,
+                pos.x - halfWidth + WALL_THICKNESS,
+                pos.y + getWallHeight(),
+                pos.z + halfDepth
+            );
+        }
+
+        if (layer == COLLISION_LAYER_WALL_EAST) {
+            return new AABB(
+                pos.x + halfWidth - WALL_THICKNESS,
+                pos.y,
+                pos.z - halfDepth,
+                pos.x + halfWidth,
+                pos.y + getWallHeight(),
+                pos.z + halfDepth
+            );
+        }
+
         return new AABB(pos.x - 0.05, pos.y, pos.z - 0.05, pos.x + 0.05, pos.y + 0.1, pos.z + 0.05);
     }
 
     @Override
     public void tick() {
         super.tick();
-
-        // Provide platform collision for entities above
-        if (!this.level().isClientSide) {
-            providePlatformCollision();
-        }
-    }
-
-    private void providePlatformCollision() {
-        float width = getWidth();
-        float depth = getDepth();
-        float halfWidth = width / 2.0f;
-        float halfDepth = depth / 2.0f;
-
-        Vec3 pos = position();
-
-        // Create a thin platform at the cabin floor level (Y + 0 to Y + 0.2)
-        AABB platformBox = new AABB(pos.x - halfWidth, pos.y, pos.z - halfDepth, pos.x + halfWidth, pos.y + 0.2, pos.z + halfDepth);
-
-        // Find all entities that might be standing on the platform
-        List<Entity> entities = this.level().getEntities(this, platformBox.inflate(0, 2, 0), entity -> entity != this && !entity.isPassenger());
-
-        for (Entity entity : entities) {
-            AABB entityBox = entity.getBoundingBox();
-
-            // Check if entity is above the platform (feet are near platform top)
-            if (entityBox.minY >= pos.y - 0.5 && entityBox.minY <= pos.y + 0.5) {
-                // Check if entity is within platform horizontal bounds
-                if (entityBox.maxX > platformBox.minX && entityBox.minX < platformBox.maxX && entityBox.maxZ > platformBox.minZ && entityBox.minZ < platformBox.maxZ) {
-
-                    // Place entity on top of platform if they're falling through
-                    if (entity.getDeltaMovement().y < 0 && entityBox.minY < pos.y + 0.2) {
-                        entity.setPos(entity.getX(), pos.y + 0.2, entity.getZ());
-                        entity.setDeltaMovement(entity.getDeltaMovement().x, 0, entity.getDeltaMovement().z);
-                        entity.setOnGround(true);
-                        entity.fallDistance = 0;
-                    }
-                }
-            }
-        }
     }
 
     @Override
@@ -113,6 +188,8 @@ public class ElevatorCabinEntity extends Entity {
         pBuilder.define(MASTER_POS, BlockPos.ZERO);
         pBuilder.define(WIDTH, 1);
         pBuilder.define(DEPTH, 1);
+        pBuilder.define(WALL_HEIGHT_BLOCKS, DEFAULT_WALL_HEIGHT_BLOCKS);
+        pBuilder.define(COLLISION_LAYER, COLLISION_LAYER_MAIN);
     }
 
     @Override
@@ -121,6 +198,12 @@ public class ElevatorCabinEntity extends Entity {
             setMasterPos(new BlockPos(pCompound.getInt("MasterX"), pCompound.getInt("MasterY"), pCompound.getInt("MasterZ")));
         }
         setDimensions(pCompound.getInt("Width"), pCompound.getInt("Depth"));
+        if (pCompound.contains("WallHeight")) {
+            setWallHeightBlocks(pCompound.getInt("WallHeight"));
+        }
+        if (pCompound.contains("CollisionLayer")) {
+            setCollisionLayer(pCompound.getInt("CollisionLayer"));
+        }
     }
 
     @Override
@@ -131,6 +214,8 @@ public class ElevatorCabinEntity extends Entity {
         pCompound.putInt("MasterZ", masterPos.getZ());
         pCompound.putInt("Width", getWidth());
         pCompound.putInt("Depth", getDepth());
+        pCompound.putInt("WallHeight", getWallHeightBlocks());
+        pCompound.putInt("CollisionLayer", getCollisionLayer());
     }
 
     @Override
@@ -140,7 +225,7 @@ public class ElevatorCabinEntity extends Entity {
 
     @Override
     public boolean canBeCollidedWith() {
-        return false; // Don't block movement
+        return getCollisionLayer() != COLLISION_LAYER_MAIN;
     }
 
     @Override
@@ -151,7 +236,7 @@ public class ElevatorCabinEntity extends Entity {
     @Override
     public void onSyncedDataUpdated(EntityDataAccessor<?> pKey) {
         super.onSyncedDataUpdated(pKey);
-        if (WIDTH.equals(pKey) || DEPTH.equals(pKey)) {
+        if (WIDTH.equals(pKey) || DEPTH.equals(pKey) || WALL_HEIGHT_BLOCKS.equals(pKey) || COLLISION_LAYER.equals(pKey)) {
             this.setBoundingBox(makeBoundingBox());
         }
     }

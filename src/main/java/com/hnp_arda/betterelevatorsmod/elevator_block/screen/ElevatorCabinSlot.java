@@ -3,6 +3,7 @@ package com.hnp_arda.betterelevatorsmod.elevator_block.screen;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
+import org.jetbrains.annotations.NotNull;
 
 import static com.hnp_arda.betterelevatorsmod.ModRegister.itemCabin;
 
@@ -25,7 +26,7 @@ public class ElevatorCabinSlot extends SlotItemHandler {
     }
 
     @Override
-    public int getMaxStackSize(ItemStack stack) {
+    public int getMaxStackSize(@NotNull ItemStack stack) {
         // Only allow 1 cabin
         return 1;
     }
